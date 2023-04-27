@@ -1,4 +1,5 @@
 whiteos.iso
-bin/
+bin/*
+build/*
 isodir/boot/whiteos.bin
 
