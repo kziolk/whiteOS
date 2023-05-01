@@ -15,3 +15,5 @@ void idt_keyboard_handler();
 void div_by_zero();
 
 int fetchException();
+int* idt_get_tick_counter();
+int idt_get_tick_counter2();

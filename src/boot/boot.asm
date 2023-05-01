@@ -1,6 +1,8 @@
 bits 32
 
 global _start
+global stack_ptr
+
 extern kernel_main
 
 MULTIBOOT_AOUT_KLUDGE    equ  1 << 16
@@ -59,8 +61,6 @@ _start:
     ; Ended remap
     call kernel_main
    
-    mov eax, 0
-    div eax
 ; If we get here just enter an infinite loop
 endloop:
     hlt                         ; halt the CPU
@@ -96,5 +96,8 @@ CODE32_SEL equ gdt32_code - gdt_start
 DATA32_SEL equ gdt32_data - gdt_start
 
 section .bss
-resb 8192                       ; 8KB for stack
+stack_ptr:
+resb 8192 * 2                       ; 8KB for stack
+db "stack ends", 0
 stack_space:
+db "saaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatack startssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss", 0

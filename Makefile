@@ -1,5 +1,8 @@
 FILES = ./build/boot/boot.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o \
-		./build/io/io.asm.o ./build/io/io.o
+		./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.o \
+		./build/whitelib/string.o ./build/whitelib/programs/defscreen.o ./build/whitelib/system.o \
+		./build/keyboard/keyboard.o ./build/terminal/terminal.o \
+		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o
 
 INCLUDES = -I./src
 
@@ -25,11 +28,8 @@ all: ./bin/whiteos.bin
 ./build/idt/idt.o: ./src/idt/idt.c
 	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/idt -c src/idt/idt.c -o build/idt/idt.o -std=gnu99
 
-./build/gdt/gdt.asm.o: ./src/gdt/gdt.asm
-	nasm -f elf -g src/gdt/gdt.asm -o build/gdt/gdt.asm.o
-
-./build/gdt/gdt.o: ./src/gdt/gdt.c
-	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/gdt -c src/gdt/gdt.c -o build/gdt/gdt.o -std=gnu99
+./build/memory/memory.o: ./src/memory/memory.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -I./src/memory -std=gnu99 -c ./src/memory/memory.c -o ./build/memory/memory.o
 
 ./build/idt/isr.asm.o: ./src/idt/isr.asm
 	nasm -f elf -g src/idt/isr.asm -o build/idt/isr.asm.o
@@ -42,6 +42,32 @@ all: ./bin/whiteos.bin
 
 ./build/io/io.asm.o: ./src/io/io.asm
 	nasm -f elf -g src/io/io.asm -o build/io/io.asm.o
+
+./build/pic/pic.o: ./src/pic/pic.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/pic -c src/pic/pic.c -o build/pic/pic.o -std=gnu99
+
+./build/whitelib/string.o: ./src/whitelib/string/string.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/string/string.c -o build/whitelib/string.o -std=gnu99
+
+./build/whitelib/programs/defscreen.o: ./src/whitelib/programs/defscreen.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/programs/defscreen.c -o build/whitelib/programs/defscreen.o -std=gnu99
+
+./build/whitelib/system.o: ./src/whitelib/system/system.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/system/system.c -o build/whitelib/system.o -std=gnu99
+
+./build/terminal/terminal.o: ./src/terminal/terminal.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/terminal -c src/terminal/terminal.c -o build/terminal/terminal.o -std=gnu99
+
+./build/keyboard/keyboard.o: ./src/keyboard/keyboard.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/keyboard -c src/keyboard/keyboard.c -o build/keyboard/keyboard.o -std=gnu99
+
+./build/memory/heap/heap.o: ./src/memory/heap/heap.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/memory/heap -c src/memory/heap/heap.c -o build/memory/heap/heap.o -std=gnu99
+
+./build/memory/heap/kheap.o: ./src/memory/heap/kheap.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/memory/heap -c src/memory/heap/kheap.c -o build/memory/heap/kheap.o -std=gnu99
+
+
 
 
 clean:
