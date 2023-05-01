@@ -97,7 +97,5 @@ DATA32_SEL equ gdt32_data - gdt_start
 
 section .bss
 stack_ptr:
-resb 8192 * 2                       ; 8KB for stack
-db "stack ends", 0
+resb 8192 * 2                       ; 8KB for stack * 2
 stack_space:
-db "saaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatack startssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss", 0

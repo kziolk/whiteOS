@@ -24,13 +24,12 @@ static char numstr_buff[32];
 static uint32_t mem_addr;
 
 void defscreen_start() {
-    ((char*)(2000))[0] = 'S';
-    ((char*)(2000))[1] = 'i';
-    ((char*)(2000))[2] = 'e';
-    ((char*)(2000))[3] = 'm';
-    ((char*)(2000))[4] = 'a';
-    ((char*)(2000))[5] = '\n';
-
+    char text[] = "This text is on the stack, kinda on top of the stack. stack.";
+    toString((int)text, numstr_buff);
+    terminal_clear();
+    terminal_print("stack var addr: ");
+    terminal_print(numstr_buff);
+    terminal_writechar('\n');
     clock_ptr = idt_get_tick_counter();
     old_clock_val = -1;
     mem_addr = 0;

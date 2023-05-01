@@ -2,7 +2,8 @@ FILES = ./build/boot/boot.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/i
 		./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.o \
 		./build/whitelib/string.o ./build/whitelib/programs/defscreen.o ./build/whitelib/system.o \
 		./build/keyboard/keyboard.o ./build/terminal/terminal.o \
-		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o
+		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o \
+		./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o
 
 INCLUDES = -I./src
 
@@ -66,6 +67,12 @@ all: ./bin/whiteos.bin
 
 ./build/memory/heap/kheap.o: ./src/memory/heap/kheap.c
 	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/memory/heap -c src/memory/heap/kheap.c -o build/memory/heap/kheap.o -std=gnu99
+
+./build/memory/paging/paging.asm.o: ./src/memory/paging/paging.asm
+	nasm -f elf -g src/memory/paging/paging.asm -o build/memory/paging/paging.asm.o
+
+./build/memory/paging/paging.o: ./src/memory/paging/paging.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/memory/paging -c src/memory/paging/paging.c -o build/memory/paging/paging.o -std=gnu99
 
 
 
