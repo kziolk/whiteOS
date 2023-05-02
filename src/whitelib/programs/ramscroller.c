@@ -1,4 +1,4 @@
-#include "defscreen.h"
+#include "ramscroller.h"
 #include "idt/idt.h"
 #include "whitelib/string.h"
 #include "terminal/terminal.h"
@@ -21,7 +21,7 @@ static uint32_t keySpace;
 static char numstr_buff[32];
 static uint32_t mem_addr;
 
-void defscreen_start() {
+void ramscroller() {
     char text[] = "This text is on the stack, kinda on top of the stack. stack.";
     toString((int)text, numstr_buff);
     terminal_clear();

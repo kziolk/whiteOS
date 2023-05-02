@@ -1,7 +1,7 @@
 FILES = ./build/kernel.asm.o ./build/kernel.o \
 		./build/idt/idt.asm.o ./build/idt/idt.o \
 		./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.o \
-		./build/whitelib/string.o ./build/whitelib/programs/defscreen.o ./build/whitelib/system.o \
+		./build/whitelib/string.o ./build/whitelib/programs/ramscroller.o ./build/whitelib/system.o \
 		./build/keyboard/keyboard.o ./build/terminal/terminal.o \
 		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o \
 		./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o \
@@ -56,8 +56,8 @@ all: ./bin/kernel.bin ./bin/boot.bin
 ./build/whitelib/string.o: ./src/whitelib/string/string.c
 	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/string/string.c -o build/whitelib/string.o -std=gnu99
 
-./build/whitelib/programs/defscreen.o: ./src/whitelib/programs/defscreen.c
-	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/programs/defscreen.c -o build/whitelib/programs/defscreen.o -std=gnu99
+./build/whitelib/programs/ramscroller.o: ./src/whitelib/programs/ramscroller.c
+	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/programs/ramscroller.c -o build/whitelib/programs/ramscroller.o -std=gnu99
 
 ./build/whitelib/system.o: ./src/whitelib/system/system.c
 	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/whitelib -c src/whitelib/system/system.c -o build/whitelib/system.o -std=gnu99
@@ -88,10 +88,6 @@ all: ./bin/kernel.bin ./bin/boot.bin
 
 ./build/disk/streamer.o: ./src/disk/streamer.c
 	i686-elf-gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/disk/streamer.c -o ./build/disk/streamer.o
-
-
-
-
 
 clean:
 	rm -rf ./bin/whiteos.bin
