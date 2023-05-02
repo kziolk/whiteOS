@@ -2,6 +2,7 @@ whiteOS
 
 prerequisites:
 - cross compiler: https://wiki.osdev.org/GCC_Cross-Compiler
+- make
 
 build:
 - go to project root directory
