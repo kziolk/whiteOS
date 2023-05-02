@@ -4,6 +4,7 @@ global outb
 global insb
 
 global outw
+global insw
 
 outb:
     mov dx, [esp + 4]
@@ -22,4 +23,10 @@ outw:
     mov dx, [esp + 4]
     mov ax, [esp + 8]
     out dx, ax
+    ret
+
+insw:
+    mov edx, [ebp+8]
+    xor eax, eax
+    in ax, dx
     ret

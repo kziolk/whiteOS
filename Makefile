@@ -3,7 +3,8 @@ FILES = ./build/boot/boot.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/i
 		./build/whitelib/string.o ./build/whitelib/programs/defscreen.o ./build/whitelib/system.o \
 		./build/keyboard/keyboard.o ./build/terminal/terminal.o \
 		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o \
-		./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o
+		./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o \
+		./build/disk/disk.o ./build/fs/pparser.o ./build/disk/streamer.o
 
 INCLUDES = -I./src
 
@@ -73,6 +74,16 @@ all: ./bin/whiteos.bin
 
 ./build/memory/paging/paging.o: ./src/memory/paging/paging.c
 	i686-elf-gcc $(FLAGS) $(INCLUDES) -I./src/memory/paging -c src/memory/paging/paging.c -o build/memory/paging/paging.o -std=gnu99
+
+./build/disk/disk.o: ./src/disk/disk.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -I./src/disk -std=gnu99 -c ./src/disk/disk.c -o ./build/disk/disk.o
+
+./build/fs/pparser.o: ./src/fs/pparser.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -I./src/fs -std=gnu99 -c ./src/fs/pparser.c -o ./build/fs/pparser.o
+
+./build/disk/streamer.o: ./src/disk/streamer.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/disk/streamer.c -o ./build/disk/streamer.o
+
 
 
 
