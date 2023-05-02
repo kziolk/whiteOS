@@ -1,101 +1,161 @@
-bits 32
+ORG 0x7c00
+BITS 16
 
-global _start
-global stack_ptr
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
 
-extern kernel_main
-
-MULTIBOOT_AOUT_KLUDGE    equ  1 << 16
-                              ;FLAGS[16] indicates to GRUB we are not
-                              ;an ELF executable and the fields
-                              ;header address, load address, load end address;
-                              ;bss end address and entry address will be available
-                              ;in Multiboot header
-MULTIBOOT_ALIGN          equ  1<<0   ; align loaded modules on page boundaries
-MULTIBOOT_MEMINFO        equ  1<<1   ; provide memory map
-
-MULTIBOOT_HEADER_MAGIC   equ  0x1BADB002
-                              ;magic number GRUB searches for in the first 8k
-                              ;of the kernel file GRUB is told to load
-
-MULTIBOOT_HEADER_FLAGS   equ  MULTIBOOT_AOUT_KLUDGE|MULTIBOOT_ALIGN|MULTIBOOT_MEMINFO
-CHECKSUM                 equ  -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
-
-multiboot_header:
-    align 4
-    dd   MULTIBOOT_HEADER_MAGIC    ;magic number
-    dd   MULTIBOOT_HEADER_FLAGS    ;flags
-    dd   CHECKSUM                  ;checksum
-    dd   multiboot_header          ;header address
-    dd   _start                    ;load address of code entry point
-                                       ;in our case _start
-    dd   00                        ;load end address : not necessary
-    dd   00                        ;bss end address : not necessary
-    dd   _start                     ;entry address GRUB will start at
 _start:
-    lgdt [gdtr]                 ; Load our own GDT, the GDTR of Grub may be invalid
+    jmp short start
+    nop
+ times 33 db 0
 
-    jmp CODE32_SEL:.setcs       ; Set CS to our 32-bit flat code selector
-.setcs:
-    mov ax, DATA32_SEL          ; Setup the segment registers with our flat data selector
+start:
+    jmp 0:init_ptrs ; code segment will be changed
+
+db 'this a hidden text inside my bootloader hue hue hue'
+
+init_ptrs:
+    cli ; clear interrupts for initializing pointers
+    mov ax, 0x00
     mov ds, ax
     mov es, ax
-    mov fs, ax
-    mov gs, ax
     mov ss, ax
-    mov esp, stack_space        ; set stack pointer
-    cli    
-    ; Enable the A20 line
-    in al, 0x92
-    or al, 2
-    out 0x92, al
-    ;remap pic   
-    mov al, 00010001b
-    out 0x20, al ; tell master pic
+    mov sp, 0x7C00
+    sti ; done, enable interrupts
 
-    mov al, 0x20 ; this is where master isr should start
-    out 0x21, al
+; message printing procedure
+print_msg:
+    ; move cursor to 0,0
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 00h
+    mov dl, 00h
+    int 0x10
+    ; set si to message memory
+    mov si, message
+    mov bx, 0
+.loop:
+    lodsb
+    cmp al, 0
+    je .done
+    call print_char
+    jmp .loop
+.done:
+    jmp load_protected
 
-    mov al, 00000001b
-    out 0x21, al
-    ; Ended remap
-    call kernel_main
-   
-; If we get here just enter an infinite loop
-endloop:
-    hlt                         ; halt the CPU
-    jmp endloop
+print_char:
+    mov ah, 0eh
+    int 0x10
+    ret
+    ; end of printing
 
-; Macro to build a GDT descriptor entry
-%define MAKE_GDT_DESC(base, limit, access, flags) \
-    (((base & 0x00FFFFFF) << 16) | \
-    ((base & 0xFF000000) << 32) | \
-    (limit & 0x0000FFFF) | \
-    ((limit & 0x000F0000) << 32) | \
-    ((access & 0xFF) << 40) | \
-    ((flags & 0x0F) << 52))
+     ; leaving 16 bit mode
+load_protected:
+    cli
+    ; loading gdt (index for last and first mem addr)
+    lgdt[gdt_descriptor]
+    mov eax, cr0
+    or eax, 0x1
+    mov cr0, eax
+    jmp CODE_SEG:load32
 
-section .data
-align 4
 gdt_start:
-    dq MAKE_GDT_DESC(0, 0, 0, 0); null descriptor
-gdt32_code:
-    dq MAKE_GDT_DESC(0, 0x00ffffff, 10011010b, 1100b)
-                                ; 32-bit code, 4kb gran, limit 0xffffffff bytes, base=0
-gdt32_data:
-    dq MAKE_GDT_DESC(0, 0x00ffffff, 10010010b, 1100b)
-                                ; 32-bit data, 4kb gran, limit 0xffffffff bytes, base=0
-end_of_gdt:
+gdt_null:
+    dd 0x0
+    dd 0x0
 
-gdtr:
-    dw end_of_gdt - gdt_start - 1
-                                ; limit (Size of GDT - 1)
-    dd gdt_start                ; base of GDT
+; offset=0x08
+gdt_code:       ; cs should point to this
+    dw 0xffff   ; segment limit 0-15 bits
+    dw 0        ; base first 0-15 bits
+    db 0        ; base 16-23
+    db 0x9a     ; access byte
+    db 11001111b    ; high 4 bit flags and low 4bit flags
+    db 0        ; base 24-31 bits
+; offset=0x10
+gdt_data:       ; ds, ss, es, fs, gs
+    dw 0xffff   ; segment limit 0-15 bits
+    dw 0        ; base first 0-15 bits
+    db 0        ; base 16-23
+    db 0x92     ; access byte
+    db 11001111b    ; high 4 bit flags and low 4bit flags
+    db 0        ; base 24-31 bits
 
-CODE32_SEL equ gdt32_code - gdt_start
-DATA32_SEL equ gdt32_data - gdt_start
+gdt_end:
 
-section .bss
-stack_ptr:
-resb 8192 * 2                       ; 8KB for stack * 2
-stack_space:
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
+
+[BITS 32]
+load32:
+    mov eax, 1
+    mov ecx, 100
+    mov edi, 0x0100000 ; my kernel.asm code
+    call ata_lba_read
+    jmp CODE_SEG:0x0100000
+
+ata_lba_read:
+    mov ebx, eax ; backup lba
+    ; send the highest 8 bits of the lba to hard disk controller
+    shr eax, 24
+    or eax, 0xE0 ; select the master drive
+    mov dx, 0x1F6
+    out dx, al
+    ; finished sending the highest 8bits of the lba
+
+    ; send the total sectors to read
+    mov eax, ecx
+    mov dx, 0x1F2
+    out dx, al
+    ; finished sending total sectors to read
+
+    ; send more bits of the lba
+    mov eax, ebx ; restore the backup lba
+    mov dx, 0x1F3
+    out dx, al
+    ; finished sending more bits of the lba
+
+    ; send more bits of the lba
+    mov dx, 0x1F4
+    mov eax, ebx ; restore the backup lba
+    shr eax, 8
+    out dx, al
+    ; finished sending more bits of the lba
+
+    ; send upper 16 bits of the lba
+    mov dx, 0x1F5
+    mov eax, ebx
+    shr eax, 16
+    out dx, al
+    ; finished sending upper 16 bits of the lba
+
+    mov dx, 0x1F7
+    mov al, 0x20
+    out dx, al
+
+    ; Read all sectors into memory
+.next_sector:
+    push ecx
+
+.try_again:
+    mov dx, 0x1F7
+    in al, dx
+    test al, 8
+    jz .try_again
+
+; we need to read 256 words at a time
+    mov ecx, 256
+    mov dx, 0x1F0
+    rep insw
+    pop ecx
+    loop .next_sector
+    ; End 
+    ret
+
+message: db 'hello from boot loader', 0xa, 0xd, 0
+
+times 510-($ - $$) db 0
+dw 0xAA55 ; Last two bytes (little endian) form the magic number,
+            ; so that BIOS knows we are a boot sector.
+

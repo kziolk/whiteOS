@@ -1,6 +1,8 @@
 /* The bootloader will look at this image and start execution at the symbol
    designated as the entry point. */
 ENTRY(_start)
+
+OUTPUT_FORMAT(binary)
  
 /* Tell where the various sections of the object files will be put in the final
    kernel image. */
@@ -15,7 +17,6 @@ SECTIONS
 	   Next we'll put the .text section. */
 	.text BLOCK(4K) : ALIGN(4K)
 	{
-		*(.multiboot)
 		*(.text)
 	}
  
@@ -37,6 +38,11 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 	}
+
+    .asm : ALIGN(4096)
+    {
+        *(.asm)
+    }
  
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */

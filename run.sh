@@ -15,4 +15,4 @@ export PATH="$PREFIX/bin:$PATH"
 make clean
 make all
 
-qemu-system-i386 -hda whiteos.iso
+qemu-system-i386 -hda ./bin/whiteos.bin

@@ -62,3 +62,7 @@ void toStringFloat(double number, char* strBuff, int precission) {
     
     toString((int)(number / 10), strBuff + coma_id + 1);
 }
+
+int isdigit(const char c) {
+    return c <= '9' && c >= '0';
+}

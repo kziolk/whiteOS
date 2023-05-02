@@ -7,8 +7,6 @@
 
 #include <stdint.h>
 
-extern void stack_ptr();
-
 static void print_clock();
 static void print_test();
 static void stack_test();
@@ -34,7 +32,7 @@ void defscreen_start() {
     old_clock_val = -1;
     mem_addr = 0;
 
-    scan_keys();
+    //scan_keys();
     keyUp = 17;
     keyUp2 = 18;
     keyUp3 = 19;
@@ -150,7 +148,7 @@ static void scan_keys() {
 
 static void print_ram() {
     terminal_clear();
-    terminal_print("RAM addr | Values:");
+    terminal_print("RAM addr   | Hex Values:                                     | Char Values:");
     terminal_gotoxy(0, 1);
     for (int row = 0; row < 20; row++) {
         toStringHex(mem_addr + 4 * row * 4, numstr_buff);
@@ -175,8 +173,8 @@ static void print_ram() {
         }
         terminal_writechar('\n');
     }
-    terminal_print("\nstack ptr = ");
-    toStringHex((int)stack_ptr, numstr_buff);
+    terminal_print("\nthis foo addr: ");
+    toStringHex((int)print_ram, numstr_buff);
     terminal_print(numstr_buff);
 
 }
