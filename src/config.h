@@ -1,5 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #define WHITEOS_TOTAL_INTERRUPTS 512
 #define KERNEL_CODE_SELECTOR 0x08
@@ -12,5 +11,3 @@
 
 #define WHITEOS_SECTOR_SIZE 512
 #define WHITEOS_MAX_PATH 108
-
-#endif

@@ -1,5 +1,5 @@
-whiteos.iso
 bin/*
 build/*
-isodir/boot/whiteos.bin
-env/
+compile_commands.json
+.cache
+script/container_name.txt

@@ -1,13 +1,16 @@
 #include "kheap.h"
+#include "config.h"
 #include "heap.h"
 #include "memory/memory.h"
 #include "terminal/terminal.h"
 #include "whitelib/string.h"
+#include <stdint.h>
+
 struct heap kernel_heap;
 struct heap_table kernel_heap_table;
 
 static char numstr_buff[32];
-// kernel heap is 100MB
+
 void kheap_init() {
     int total_table_entries = WHITEOS_HEAP_SIZE_BYTES / WHITEOS_HEAP_BLOCK_SIZE;
     kernel_heap_table.entries = (HEAP_BLOCK_TABLE_ENTRY*)(WHITEOS_HEAP_TABLE_ADDRESS);
@@ -29,19 +32,19 @@ void kheap_init() {
         toStringHex(WHITEOS_HEAP_ADDRESS, numstr_buff);
         terminal_print(numstr_buff);
         terminal_print("\nAddr end: ");
-        toStringHex((int)end, numstr_buff);
+        toStringHex((intptr_t)end, numstr_buff);
         terminal_print(numstr_buff);
-        
+
     }
 }
 
 void* kmalloc(size_t size) {
-    return heap_malloc(&kernel_heap, size);    
+    return heap_malloc(&kernel_heap, size);
 }
 
 void* kzalloc(size_t size) {
     void* ptr = kmalloc(size);
-    if (!ptr) 
+    if (!ptr)
         return 0;
     memset(ptr, 0x00, size);
     return ptr;

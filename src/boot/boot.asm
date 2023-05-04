@@ -4,23 +4,22 @@ BITS 16
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 
+;space for "BIOS Parameter Block", which can be corrupted during USB emulation on real hardware
 _start:
     jmp short start
     nop
  times 33 db 0
 
 start:
-    jmp 0:init_ptrs ; code segment will be changed
-
-db 'this a hidden text inside my bootloader hue hue hue'
+    jmp 0:init_ptrs ; set code segment to 0
 
 init_ptrs:
-    cli ; clear interrupts for initializing pointers
+    cli ; initialize pointers in case bios sets them differently
     mov ax, 0x00
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7C00
+    mov sp, 0x7C00 ; stack pointer for 16 bits
     sti ; done, enable interrupts
 
 ; message printing procedure
@@ -57,43 +56,17 @@ load_protected:
     mov eax, cr0
     or eax, 0x1
     mov cr0, eax
-    jmp CODE_SEG:load32
-
-gdt_start:
-gdt_null:
-    dd 0x0
-    dd 0x0
-
-; offset=0x08
-gdt_code:       ; cs should point to this
-    dw 0xffff   ; segment limit 0-15 bits
-    dw 0        ; base first 0-15 bits
-    db 0        ; base 16-23
-    db 0x9a     ; access byte
-    db 11001111b    ; high 4 bit flags and low 4bit flags
-    db 0        ; base 24-31 bits
-; offset=0x10
-gdt_data:       ; ds, ss, es, fs, gs
-    dw 0xffff   ; segment limit 0-15 bits
-    dw 0        ; base first 0-15 bits
-    db 0        ; base 16-23
-    db 0x92     ; access byte
-    db 11001111b    ; high 4 bit flags and low 4bit flags
-    db 0        ; base 24-31 bits
-
-gdt_end:
-
-gdt_descriptor:
-    dw gdt_end - gdt_start - 1
-    dd gdt_start
+    jmp CODE_SEG:load32 ; switch to the code selector and jmp to absolute addr load32
 
 [BITS 32]
 load32:
-    mov eax, 1
-    mov ecx, 100
-    mov edi, 0x0100000 ; my kernel.asm code
+    mov eax, 1          ; load from 1st sector (0 is boot.bin sector)
+    mov ecx, 100        ; load 100 sectors
+    mov edi, 0x0100000  ; into this address
     call ata_lba_read
     jmp CODE_SEG:0x0100000
+
+
 
 ata_lba_read:
     mov ebx, eax ; backup lba
@@ -150,12 +123,42 @@ ata_lba_read:
     rep insw
     pop ecx
     loop .next_sector
-    ; End 
+    ; End
     ret
 
-message: db 'hello from boot loader', 0xa, 0xd, 0
+; gdt data
+gdt_start:
+gdt_null:
+    dd 0x0
+    dd 0x0
+
+; offset=0x08 code descriptor.
+; default values to access all memory
+gdt_code:       ; cs should point to this
+    dw 0xffff   ; segment limit 0-15 bits
+    dw 0        ; base first 0-15 bits
+    db 0        ; base 16-23
+    db 0x9a     ; access byte
+    db 11001111b    ; high 4 bit flags and low 4bit flags
+    db 0        ; base 24-31 bits
+; offset=0x10
+gdt_data:       ; ds, ss, es, fs, gs
+    dw 0xffff   ; segment limit 0-15 bits
+    dw 0        ; base first 0-15 bits
+    db 0        ; base 16-23
+    db 0x92     ; access byte
+    db 11001111b    ; high 4 bit flags and low 4bit flags
+    db 0        ; base 24-31 bits
+
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1   ; size
+    dd gdt_start                ; offset
+
+message: db "hello from boot loader", 0xa, 0xd, 0
 
 times 510-($ - $$) db 0
-dw 0xAA55 ; Last two bytes (little endian) form the magic number,
+dw 0xAA55 ;Last two bytes (little endian) form the magic number,
             ; so that BIOS knows we are a boot sector.
 

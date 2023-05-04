@@ -1,8 +1,17 @@
 #include "string.h"
+#include <stddef.h>
 
+size_t strnlen(const char* str, size_t limit) {
+    size_t i = 0;
+    while(str[i] != 0) {
+        if (i == limit) return 0;
+        i++;
+    }
+    return i;
+}
 size_t strlen(const char* str) {
     size_t i = 0;
-    while(str[i] != 0) 
+    while(str[i] != 0)
         i++;
     return i;
 }
@@ -48,7 +57,7 @@ void toStringHex(uint32_t number, char* strBuff) {
 void toStringFloat(double number, char* strBuff, int precission) {
     toString((int)number, strBuff);
     if (precission < 1) return;
-    
+
     size_t coma_id = strlen(strBuff);
     strBuff[coma_id] = '.';
 
@@ -59,10 +68,22 @@ void toStringFloat(double number, char* strBuff, int precission) {
     }
     if ((int)number % 10 > 4)
         number += 10;
-    
+
     toString((int)(number / 10), strBuff + coma_id + 1);
 }
 
 int isdigit(const char c) {
     return c <= '9' && c >= '0';
+}
+
+int toInt(const char* str)
+{
+    size_t i = 0;
+    int val = 0;
+    while (str[i]) {
+        val *= 10;
+        val += (str[i]-'0');
+        i++;
+    }
+    return val;
 }

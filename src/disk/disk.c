@@ -1,5 +1,5 @@
-#include "io/io.h"
 #include "disk.h"
+#include "io/io.h"
 #include "memory/memory.h"
 #include "config.h"
 #include "status.h"
@@ -14,7 +14,7 @@ int disk_read_sector(int lba, int total, void* buf)
     outb(0x1F4, (unsigned char)(lba >> 8));
     outb(0x1F5, (unsigned char)(lba >> 16));
     outb(0x1F7, 0x20);
-    
+
     unsigned short* ptr = (unsigned short*) buf;
     for (int b = 0; b < total; b++)
     {
@@ -22,7 +22,7 @@ int disk_read_sector(int lba, int total, void* buf)
         char c = insb(0x1F7);
         while(!(c & 0x08))
             c = insb(0x1F7);
-        
+
         // ready to read from ata controller
         // copy from hard disk to ram
         for (int i = 0; i < 256; i++)
@@ -32,7 +32,7 @@ int disk_read_sector(int lba, int total, void* buf)
         }
     }
         // thats it
-        
+
     return 0;
 }
 
