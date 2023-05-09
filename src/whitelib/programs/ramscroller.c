@@ -91,6 +91,7 @@ void ramscroller()
             keyboard_scan_key(); // key down
             keyboard_scan_key(); // key up
         } else if (key == keyEnter) {
+            terminal_clear();
             terminal_print("Go to (decimal) memory addr: ");
             getinput_number(numstr_buff);
             int val = toInt(numstr_buff);

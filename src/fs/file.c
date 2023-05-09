@@ -118,31 +118,30 @@ FILE_MODE file_get_mode_by_string(const char* str)
         mode = FILE_MODE_WRITE;
     else if (strncmp(str, "a", 1) == 0)
         mode = FILE_MODE_APPEND;
+    else if (strncmp(str, "dir", 1) == 0)
+        mode = FILE_MODE_DIRECTORY;
     return mode;
 }
 
 int fopen(const char* filename, const char* mode_str)
 {
-    terminal_print("Opening file ");
-    terminal_print(filename);
-    terminal_writechar('\n');
     int res = 0;
     // parse path
     struct path_root* root_path = pparser_parse(filename, NULL);
     if (!root_path)
     {
-        terminal_print("\tno root");
+        terminal_print("\tno root path");
         res = -EINVARG;
         goto out;
     }
 
-    // not allowing opening root dir 0:/
-    if (!root_path->first)
-    {
-        terminal_print("\tno root->first\n");
-        res = -EINVARG;
-        goto out;
-    }
+    // // not allowing opening root dir 0:/
+    // if (!root_path->first)
+    // {
+    //     terminal_print("\tno root->first\n");
+    //     res = -EINVARG;
+    //     goto out;
+    // }
     // get the disc and check filesystem on it
     struct disk* disk = disk_get(root_path->drive_no);
     if (!disk)
@@ -174,7 +173,6 @@ int fopen(const char* filename, const char* mode_str)
         res = ERROR_I(descriptor_private_data);
         goto out;
     }
-    terminal_print("creating descriptor\n");
     // create new file descriptor; associate it with file system and disk.
     struct file_descriptor* desc = 0;
     res = file_new_descriptor(&desc);
@@ -261,54 +259,20 @@ out:
     return res;
 }
 
-// int opendir(const char* filename)
-// {
-//     terminal_print("Opening directory ");
-//     terminal_print(filename);
-//     terminal_writechar('\n');
-//     int res = 0;
-//     // parse path
-//     struct path_root* root_path = pparser_parse(filename, NULL);
-//     if (!root_path)
-//     {
-//         terminal_print("\tno root");
-//         res = -EINVARG;
-//         goto out;
-//     }
+int readdir(int fd, struct dirent* entry)
+{
+    int res = 0;
+    struct file_descriptor* desc = file_get_descriptor(fd);
+    if (!desc)
+    {
+        res = -EIO;
+        goto out;
+    }
 
-//     // get the disc and check filesystem on it
-//     struct disk* disk = disk_get(root_path->drive_no);
-//     if (!disk)
-//     {
-//         terminal_print("\tno disk\n");
-//         res = -EIO;
-//         goto out;
-//     }
-
-//     if (!disk->filesystem)
-//     {
-//         terminal_print("\tno filesystem\n");
-//         res = -EIO;
-//         goto out;
-//     }
-//     // call open function from filesystem driver
-//     void* descriptor_private_data = disk->filesystem->opendir(disk, root_path->first);
-//     if (ISERR(descriptor_private_data))
-//     {
-//         terminal_print("\tprivate data error\n");
-//         res = ERROR_I(descriptor_private_data);
-//         goto out;
-//     }
-//     terminal_print("creating descriptor\n");
-//     // create new file descriptor; associate it with file system and disk.
-//     struct file_descriptor* desc = 0;
-//     res = file_new_descriptor(&desc);
-//     if (res < 0) goto out;
-//     desc->filesystem = disk->filesystem;
-//     desc->private = disk->fs_private;
-//     desc->disk = disk;
-//     res = desc->index;
-// out:
-//     if (res < 0) res = 0;
-//     return res;
-// }
+    res = desc->filesystem->readdir(desc->disk, desc->private, &entry->private);
+    if (res)
+        goto out;
+    fat16_get_full_relative_filename(entry->private, entry->name, 12);
+out:
+    return res;
+}

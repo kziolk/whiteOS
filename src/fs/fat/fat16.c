@@ -86,6 +86,7 @@ struct fat_directory_item
 struct fat_directory
 {
     struct fat_directory_item* items;
+    int curr_item;
     int total_items;
     int sector_pos;
     int ending_sector_pos;
@@ -126,6 +127,7 @@ int fat16_close(void* private);
 //void* fat16_opendir(struct disk* disk, struct path_part* path);
 int fat16_seek(void* private, uint32_t offset, FILE_SEEK_MODE seek_mode);
 int fat16_read(struct disk* disk, void* descriptor, uint32_t size, uint32_t nmemb, char* out_ptr);
+int fat16_readdir(struct disk* disk, void* private, void** entry_private);
 int fat16_stat(struct disk* disk, void* private, struct file_stat* stat);
 
 struct filesystem fat16_fs =
@@ -135,6 +137,7 @@ struct filesystem fat16_fs =
     .close = fat16_close,
     //.opendir = fat16_opendir,
     .read = fat16_read,
+    .readdir = fat16_readdir,
     .seek = fat16_seek,
     .stat = fat16_stat
 };
@@ -236,6 +239,24 @@ int fat16_get_root_directory(struct disk* disk, struct fat_private* fat_private,
     directory->total_items = total_items;
     directory->sector_pos = root_dir_sector_pos;
     directory->ending_sector_pos = root_dir_sector_pos + (root_dir_size / disk->sector_size);
+    char numstr_buff[32];
+    toStringHex(directory->sector_pos * 512, numstr_buff);
+    terminal_print("root pos = ");
+    terminal_print(numstr_buff);
+    terminal_writechar('\n');
+
+    toStringHex(directory->ending_sector_pos * 512, numstr_buff);
+    terminal_print("root end = ");
+    terminal_print(numstr_buff);
+    terminal_writechar('\n');
+
+    toStringHex((directory->ending_sector_pos + ((0 - 2) * primary_header->sectors_per_cluster)) * 512, numstr_buff);
+    terminal_print("cluster 0 = ");
+    terminal_print(numstr_buff);
+    terminal_writechar('\n');
+
+    
+
 out:
     return res;
 }
@@ -481,13 +502,13 @@ void fat16_fat_item_free(struct fat_item* item)
 {
     if (item->type == FAT_ITEM_TYPE_DIRECTORY)
         fat16_free_directory(item->directory);
-    else if (item->type == FAT_ITEM_TYPE_FILE)
-        kfree(item->item);
-    else {
-        // panic
-        while(1) {}
-    }
+    kfree(item->item);
     kfree(item);
+}
+
+int fat16_isdir(struct fat_directory_item* item)
+{
+    return (item->attribute & FAT_FILE_SUBDIRECTORY);
 }
 
 struct fat_directory* fat16_load_fat_directory(struct disk* disk, struct fat_directory_item* item)
@@ -497,7 +518,7 @@ struct fat_directory* fat16_load_fat_directory(struct disk* disk, struct fat_dir
     struct fat_private* fat_private = disk->fs_private;
 
     // ignore files
-    if (!(item->attribute & FAT_FILE_SUBDIRECTORY))
+    if (!fat16_isdir(item))
     {
         res = -EINVARG;
         goto out;
@@ -530,7 +551,7 @@ struct fat_directory* fat16_load_fat_directory(struct disk* disk, struct fat_dir
     {
         goto out;
     }
-
+    directory->curr_item = 0;
 out:
     if (res != WHITEOS_ALL_OK)
     {
@@ -548,7 +569,7 @@ struct fat_item* fat16_new_fat_item_for_directory_item(struct disk* disk, struct
     }
 
     f_item->item = fat16_clone_directory_item(item, sizeof(struct fat_directory_item));
-    if (item->attribute & FAT_FILE_SUBDIRECTORY)
+    if (fat16_isdir(item))
     {
         // if it's a folder then load the folder contents
         f_item->directory = fat16_load_fat_directory(disk, item);
@@ -564,20 +585,13 @@ struct fat_item* fat16_new_fat_item_for_directory_item(struct disk* disk, struct
 
 struct fat_item* fat16_find_item_in_directory(struct disk* disk, struct fat_directory* directory, const char* name)
 {
-    terminal_print("Searching directory: \n");
     struct fat_item* f_item = 0;
     char tmp_filename[WHITEOS_MAX_PATH];
     for (int i = 0; i < directory->total_items; i++)
     {
         fat16_get_full_relative_filename(&directory->items[i], tmp_filename, sizeof(tmp_filename));
-        terminal_print("\tComparing: ");
-        terminal_print((char*)directory->items[i].filename);
-        terminal_print(", With: ");
-        terminal_print(name);
-        terminal_writechar('\n');
         if (istrncmp(tmp_filename, name, sizeof(tmp_filename)) == 0)
         {
-            terminal_print("they match\n");
             // found matching filename.
             f_item = fat16_new_fat_item_for_directory_item(disk, &directory->items[i]);
             break;
@@ -608,13 +622,13 @@ struct fat_item* fat16_get_directory_entry(struct disk* disk, struct path_part* 
             current_item = 0;
             break;
         }
-        terminal_print("current: \n\tname: ");
-        char tmpname[129];
-        fat16_get_full_relative_filename(current_item->item, tmpname, 129);
-        terminal_print(tmpname);
-        terminal_print("\n\ttype: ");
-        terminal_writechar('0' + current_item->type);
-        terminal_writechar('\n');
+        // char tmpname[129];
+        // fat16_get_full_relative_filename(current_item->item, tmpname, 129);
+        // terminal_print("current: \n\tname: ");
+        // terminal_print(tmpname);
+        // terminal_print("\n\ttype: ");
+        // terminal_writechar('0' + current_item->type);
+        // terminal_writechar('\n');
         struct fat_item* tmp_item = fat16_find_item_in_directory(disk, current_item->directory, next_part->name);
         fat16_fat_item_free(current_item);
         current_item = tmp_item;
@@ -624,14 +638,16 @@ out:
     return current_item;
 }
 
+static void fat16_free_file_descriptor(struct fat_file_descriptor* desc)
+{
+    fat16_fat_item_free(desc->item);
+    kfree(desc);
+}
+
 void* fat16_open(struct disk* disk, struct path_part* path, FILE_MODE mode)
 {
-    terminal_print("fat16_open from ");
-    terminal_print(path->name);
-    terminal_writechar('\n');
-
-    if (mode != FILE_MODE_READ)
-        return ERROR(-ERDONLY);
+    // if (mode != FILE_MODE_READ)
+    //     return ERROR(-ERDONLY);
 
     struct fat_file_descriptor* descriptor = 0;
     descriptor = kzalloc(sizeof(struct fat_file_descriptor));
@@ -640,28 +656,36 @@ void* fat16_open(struct disk* disk, struct path_part* path, FILE_MODE mode)
         terminal_print("no descriptor\n");
         return ERROR(-ENOMEM);
     }
-    descriptor->item = fat16_get_directory_entry(disk, path);
+    if (!path)
+    {
+        // open root
+        descriptor->item = kzalloc(sizeof(struct fat_item));
+        descriptor->item->directory = &((struct fat_private*)disk->fs_private)->root_directory;
+        descriptor->item->type = FAT_ITEM_TYPE_DIRECTORY;
+    }
+    else descriptor->item = fat16_get_directory_entry(disk, path);
     if (!descriptor->item)
     {
-        //kfree
+        fat16_free_file_descriptor(descriptor);
         terminal_print("no descriptor item\n");
         return ERROR(-EIO);
     }
-    else if (descriptor->item->type != FAT_ITEM_TYPE_FILE)
-    {
-        //kfree
-        terminal_print("this is not a file\n");
-        return ERROR(-EIO);
-    }
+    // else if (descriptor->item->type != FAT_ITEM_TYPE_FILE)
+    // {
+    //     fat16_free_file_descriptor(descriptor);
+    //     terminal_print("this is not a file\n");
+    //     return ERROR(-EIO);
+    // }
 
     descriptor->pos = 0;
+    // if (descriptor->item->type == FAT_ITEM_TYPE_DIRECTORY) {
+    //     terminal_print("its a dir\n");
+    //     if (descriptor->item->directory->items[0].filename[0] == 0x00)
+    //         terminal_print("empty\n");
+    // }
+    // else
+    //     terminal_print("aint a dir\n");
     return descriptor;
-}
-
-static void fat16_free_file_descriptor(struct fat_file_descriptor* desc)
-{
-    fat16_fat_item_free(desc->item);
-    kfree(desc);
 }
 
 int fat16_close(void* private)
@@ -759,41 +783,26 @@ out:
     return res;
 }
 
-// void* fat16_opendir(struct disk* disk, struct path_part* path)
-// {
-//     terminal_print("fat16_opendir from \"");
-//     terminal_print(path->name);
-//     terminal_print("\"\n");
+int fat16_readdir(struct disk* disk, void* private, void** entry_private)
+{
+    int res = 0;
+    struct fat_file_descriptor* desc = private;
+    
+    if (desc->item->type != FAT_ITEM_TYPE_DIRECTORY)
+    {
+        res = -EINVARG;
+        goto out;
+    }
 
-//     struct fat_file_descriptor* descriptor = 0;
-//     descriptor = kzalloc(sizeof(struct fat_file_descriptor));
-//     if (!descriptor)
-//     {
-//         terminal_print("no descriptor\n");
-//         return ERROR(-ENOMEM);
-//     }
-//     // can open root directory
-//     if (!path)
-//     {
-//         terminal_print("can't open root dir yet\n");
-//         return ERROR(-EIO);
-//     }
-//     else
-//         descriptor->item = fat16_get_directory_entry(disk, path);
-//     if (!descriptor->item)
-//     {
-//         //kfree
-//         terminal_print("no descriptor item\n");
-//         return ERROR(-EIO);
-//     }
-//     else if (descriptor->item->type != FAT_ITEM_TYPE_DIRECTORY)
-//     {
-//         //kfree
-//         terminal_print("this is not a directory\n");
-//         return ERROR(-EIO);
-//     }
-
-//     descriptor->pos = 0;
-//     return descriptor;
-// }
-
+    struct fat_directory* dir = desc->item->directory;
+    // reached last entry
+    if (dir->curr_item >= dir->total_items)
+    {
+        res = 1;
+        goto out;
+    }
+    *entry_private = &dir->items[dir->curr_item];
+    dir->curr_item++;
+out:
+    return res;
+}

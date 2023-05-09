@@ -25,6 +25,12 @@ void test_write_lba();
 void test_paging();
 void test_fat();
 
+void panic(const char* msg)
+{
+    terminal_print(msg);
+    while(1){}
+}
+
 void kernel_main(void* multiboot_info_ptr, uint32_t magic_number)
 {
     terminal_clear();
@@ -62,10 +68,10 @@ void kernel_main(void* multiboot_info_ptr, uint32_t magic_number)
 //    test_paging();
 
     // FAT 10h
-    test_fat();
+    //test_fat();
 
     // run interactive programs
-//    ramscroller();
+    ramscroller();
     fileexplorer();
 
 

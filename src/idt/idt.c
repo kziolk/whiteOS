@@ -55,7 +55,7 @@ void idt_set_handler(int isr_number, void* handler, uint8_t flags)
 
 void dummy_handler()
 {
-    terminal_print("dummy_idt ");
+    terminal_print("dummy_idt\n");
     outb(0x20, 0x20);
 }
 

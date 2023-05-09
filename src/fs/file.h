@@ -17,6 +17,7 @@ enum {
     FILE_MODE_READ,
     FILE_MODE_WRITE,
     FILE_MODE_APPEND,
+    FILE_MODE_DIRECTORY,
     FILE_MODE_INVALID
 };
 
@@ -37,6 +38,7 @@ typedef int(*FS_STAT_FUNCTION)(struct disk* disk, void* private, struct file_sta
 
 // open directory too.
 typedef void*(*FS_OPEN_DIR_FUNCTION)(struct disk* disk, struct path_part* path);
+typedef int(*FS_READ_DIR_FUNCTION)(struct disk* disk, void* private, void** entry_private);
 
 // file system returns a flag telling whether it can handle the disk
 typedef int (*FS_RESOLVE_FUNCTION)(struct disk* disk);
@@ -48,6 +50,7 @@ struct filesystem
     FS_CLOSE_FUNCTION close;
     FS_OPEN_DIR_FUNCTION opendir;
     FS_READ_FUNCTION read;
+    FS_READ_DIR_FUNCTION readdir;
     FS_SEEK_FUNCTION seek;
     FS_STAT_FUNCTION stat;
 
@@ -72,13 +75,22 @@ struct file_stat
     uint32_t filesize;
 };
 
+// for listing directory entries
+struct dirent
+{
+    void* private;
+    char name[12];
+};
+
 void fs_init();
 int fopen(const char* filename, const char* mode_str);
 int fclose(int fd);
-// int opendir(const char* filename);
 int fread(void* ptr, uint32_t size, uint32_t nmemb, int fd);
 int fstat(int fd, struct file_stat* stat);
 int fseek(int fd, int offset, FILE_SEEK_MODE whence);
+int readdir(int fd, struct dirent* entry);
+
 void fs_insert_filesystem(struct filesystem* filesystem);
+
 struct filesystem* fs_resolve(struct disk* disk);
 struct file_descriptor* file_get_descriptor(int fd);
