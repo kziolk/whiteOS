@@ -20,16 +20,23 @@ int diskstreamer_seek(struct disk_stream* stream, int pos)
     return 0;
 }
 
+// unwanted behaviour:
+// if stream->pos = 128
+// sector=0, offset=128
+// if total = 512
+// it's gonna read once 512b from sector 0 and not go to sector 1.
 int diskstreamer_read(struct disk_stream* stream, void* out, int total)
 {
     int sector = stream->pos / WHITEOS_SECTOR_SIZE;
     int offset = stream->pos % WHITEOS_SECTOR_SIZE;
+    // create buffer to prevent
     char buf[WHITEOS_SECTOR_SIZE];
 
     int res = disk_read_block(stream->disk, sector, 1, buf);
     if (res < 0)
         goto out;
 
+    // max value of total_to_read should be WHITEOS_SECTOR_SIZE - offset (?)
     int total_to_read = total >= WHITEOS_SECTOR_SIZE ? WHITEOS_SECTOR_SIZE : total;
     for (int i = 0; i < total_to_read; i++)
     {

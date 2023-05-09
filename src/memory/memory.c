@@ -20,3 +20,9 @@ int memcmp(void* ptr1, void* ptr2, size_t size)
     }
     return 0;
 }
+
+void memcpy(void* dest, void* src, size_t len)
+{
+    for (size_t i = 0; i < len; i++)
+        ((char*)dest)[i] = ((char*)src)[i];
+}

@@ -7,7 +7,10 @@ FILES =	./build/kernel.asm.o ./build/kernel.o \
 		./build/keyboard/keyboard.o ./build/terminal/terminal.o \
 		./build/memory/heap/heap.o ./build/memory/heap/kheap.o ./build/memory/memory.o \
 		./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o \
-		./build/disk/disk.o ./build/fs/pparser.o ./build/disk/streamer.o
+		./build/disk/disk.o ./build/fs/pparser.o ./build/disk/streamer.o ./build/fs/file.o ./build/fs/fat/fat16.o
+
+FOLDERS = boot disk fs fs/fat gdt idt io keyboard memory memory/heap memory/paging pic \
+		  terminal whitelib whitelib/programs
 
 INCLUDES = -I./src
 
@@ -17,7 +20,7 @@ all: ./bin/kernel.bin ./bin/boot.bin
 	rm -rf ./bin/whiteos.bin
 	dd if=./bin/boot.bin >> ./bin/whiteos.bin
 	dd if=./bin/kernel.bin >> ./bin/whiteos.bin
-	dd if=/dev/zero bs=512 count=100 >> ./bin/whiteos.bin
+	dd if=/dev/zero bs=1048576 count=16 >> ./bin/whiteos.bin
 
 ./bin/kernel.bin: build
 	gcc $(FLAGS) -T src/linker.ld -o bin/kernel.bin ./build/kernelfull.o
@@ -97,9 +100,16 @@ build: $(FILES)
 ./build/disk/streamer.o: ./src/disk/streamer.c
 	gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/disk/streamer.c -o ./build/disk/streamer.o
 
+./build/fs/file.o: ./src/fs/file.c
+	gcc $(INCLUDES) $(FLAGS) -I./src/fs -std=gnu99 -c ./src/fs/file.c -o ./build/fs/file.o
+
+./build/fs/fat/fat16.o: ./src/fs/fat/fat16.c
+	gcc $(INCLUDES) $(FLAGS) -I./src/fs -std=gnu99 -c ./src/fs/fat/fat16.c -o ./build/fs/fat/fat16.o
+
 clean:
 	rm -rf ./bin/whiteos.bin
 	rm -rf ./bin/kernel.bin
 	rm -rf ./bin/boot.bin
 	rm -rf ${FILES}
 	rm -rf ./build/kernelfull.o
+	cd build && mkdir -p ${FOLDERS} && cd ..
