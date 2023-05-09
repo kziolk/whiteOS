@@ -1,17 +1,17 @@
 whiteOS
 
 prerequisites:
-    Docker
-    qemu
+- Docker
+- qemu
 
-create docker container:
-    $ ./script/createContainer.sh
+create docker container (linux):
+- $ ./script/createContainer.sh
 
 build:
-    $ ./script/startContainer.sh
-    $ cd /os
-    $ ./script/build.sh
-    $ exit
+- $ ./script/startContainer.sh
+- $ cd /os
+- $ ./script/build.sh
+- $ exit
 
-run:
-    $ ./script/run.sh
+run (linux):
+- $ ./script/run.sh
