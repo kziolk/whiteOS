@@ -2,4 +2,3 @@ bin/*
 build/*
 compile_commands.json
 .cache
-script/container_name.txt
